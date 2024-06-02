@@ -46,6 +46,6 @@ public class AnomalyDetectionJob {
 
 		transactionStream.print();
 
-		env.execute("Fraud Detection");
+		env.execute("Kafka-anomalyDetection");
 	}
 }
