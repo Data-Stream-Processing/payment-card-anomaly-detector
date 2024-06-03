@@ -2,7 +2,7 @@ package src.main.java.datastream;
 
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.walkthrough.common.sink.AlertSink;
+//import org.apache.flink.walkthrough.common.sink.AlertSink;
 import org.apache.flink.walkthrough.common.entity.Alert;
 import org.apache.flink.walkthrough.common.source.TransactionSource;
 
@@ -17,6 +17,7 @@ import org.apache.flink.streaming.util.serialization.JSONKeyValueDeserialization
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 import src.main.java.models.Transaction;
+import src.main.java.models.AnomalyAlert;
 import src.main.java.utils.TransactionDeserializationSchema;
 
 import java.util.Properties;
@@ -44,7 +45,16 @@ public class AnomalyDetectionJob {
 
         DataStream<Transaction> transactionStream = env.addSource(consumer);
 
+        DataStream<AnomalyAlert> anomalyAlert = transactionStream
+                .keyBy(Transaction::getCard_id)
+                .process(new AnomalyDetector())
+                .name("anomaly-detector");
+
 		transactionStream.print();
+
+        anomalyAlert
+                .addSink(new AlertSink())
+                .name("send-alerts");
 
 		env.execute("Kafka-anomalyDetection");
 	}

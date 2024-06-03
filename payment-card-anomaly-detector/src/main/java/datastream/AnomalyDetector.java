@@ -23,11 +23,12 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.walkthrough.common.entity.Alert;
 
 import src.main.java.models.Transaction;
+import src.main.java.models.AnomalyAlert;
 
 /**
  * Skeleton code for implementing a fraud detector.
  */
-public class AnomalyDetector extends KeyedProcessFunction<Long, Transaction, Alert> {
+public class AnomalyDetector extends KeyedProcessFunction<Long, Transaction, AnomalyAlert> {
 
 	private static final long serialVersionUID = 1L;
 
@@ -39,10 +40,12 @@ public class AnomalyDetector extends KeyedProcessFunction<Long, Transaction, Ale
 	public void processElement(
 			Transaction transaction,
 			Context context,
-			Collector<Alert> collector) throws Exception {
+			Collector<AnomalyAlert> collector) throws Exception {
 
-		Alert alert = new Alert();
-		alert.setId(transaction.getCard_id());
+		AnomalyAlert alert = new AnomalyAlert();
+		alert.setCardId(transaction.getCard_id());
+		alert.setFraudType("FRAUD");
+		alert.setFraudDetails("This is a test fraud");
 
 		collector.collect(alert);
 	}
