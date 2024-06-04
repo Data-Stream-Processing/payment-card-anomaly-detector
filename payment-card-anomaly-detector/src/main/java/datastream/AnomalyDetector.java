@@ -25,6 +25,8 @@ import org.apache.flink.walkthrough.common.entity.Alert;
 import src.main.java.models.Transaction;
 import src.main.java.models.AnomalyAlert;
 
+import java.time.LocalDateTime;
+
 /**
  * Skeleton code for implementing a fraud detector.
  */
@@ -42,10 +44,13 @@ public class AnomalyDetector extends KeyedProcessFunction<Long, Transaction, Ano
 			Context context,
 			Collector<AnomalyAlert> collector) throws Exception {
 
+		LocalDateTime timestamp = LocalDateTime.now();
+
 		AnomalyAlert alert = new AnomalyAlert();
 		alert.setCardId(transaction.getCard_id());
 		alert.setFraudType("FRAUD");
 		alert.setFraudDetails("This is a test fraud");
+		alert.setTimestmap(timestamp.toString());
 
 		collector.collect(alert);
 	}

@@ -1,19 +1,34 @@
 package src.main.java.models;
 
-public class AnomalyAlert {
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.UUID;
+import java.time.LocalDateTime;
+import java.io.Serializable;
+public class AnomalyAlert implements Serializable{
+
+    @JsonProperty("alertId")
     private String alertId;
+    @JsonProperty("cardId")
     private long cardId;
+    @JsonProperty("fraudType")
     private String fraudType;
+    @JsonProperty("fraudDetails")
     private String fraudDetails;
+    @JsonProperty("timestamp")
+    private String timestamp;
     
-    public AnomalyAlert(){}
+    public AnomalyAlert(){
+        UUID uuid  = UUID.randomUUID();
+        this.alertId = uuid.toString();
+    }
 
-    public AnomalyAlert(String alertId, long cardId, String fraudType, String fraudDetails){
+    public AnomalyAlert(String alertId, long cardId, String fraudType, String fraudDetails, String timestamp){
         this.alertId = alertId;
         this.cardId = cardId;
         this.fraudType = fraudType;
         this.fraudDetails = fraudDetails;
+        this.timestamp = timestamp;
     }
 
     public String getAlertId(){
@@ -48,6 +63,14 @@ public class AnomalyAlert {
         this.fraudDetails = fraudDetails;
     }
 
+    public String getTimestanmp(){
+        return timestamp;
+    }
+
+    public void setTimestmap(String timestamp){
+        this.timestamp = timestamp;
+    }
+
     public String toString(){
         return "{AnomalyAlert="
                 + "alertId="
@@ -58,6 +81,8 @@ public class AnomalyAlert {
                 + fraudType
                 + ",fraudDetails="
                 + fraudDetails
+                + ",timestamp="
+                + timestamp
                 +"}";
     }
 }
