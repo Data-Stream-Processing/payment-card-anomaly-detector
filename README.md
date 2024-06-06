@@ -13,7 +13,7 @@ Add jar as job to Flink cluster:
 
 ## Anomaly Detection Algorithm for Streaming Data
 
-The anomaly detection algorithm for streaming data involves using statistical models to continuously monitor and evaluate data points in real-time. Here’s a step-by-step explanation:
+This anomaly detection algorithm uses the moving average to determine the expected range of values and continuously updates its parameters with each new data point. By comparing the current data point to this range and using the ESF, the algorithm can effectively detect and signal anomalies in real-time. Proper selection of the normal value range is crucial for balancing sensitivity and stability in anomaly detection. Here’s a step-by-step explanation:
 
 ### 1. Moving Average Calculation
 
