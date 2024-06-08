@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;
 import java.time.LocalDateTime;
 import java.io.Serializable;
+
+
 public class AnomalyAlert implements Serializable{
 
     @JsonProperty("alertId")
@@ -29,6 +31,17 @@ public class AnomalyAlert implements Serializable{
         this.fraudType = fraudType;
         this.fraudDetails = fraudDetails;
         this.timestamp = timestamp;
+    }
+
+    public AnomalyAlert(long cardId, String fraudType, String fraudDetails){
+        this.timestamp = LocalDateTime.now().toString();
+        
+        UUID uuid  = UUID.randomUUID();
+        this.alertId = uuid.toString();
+
+        this.cardId = cardId;
+        this.fraudType = fraudType;
+        this.fraudDetails = fraudDetails;
     }
 
     public String getAlertId(){
