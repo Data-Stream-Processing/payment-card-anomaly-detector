@@ -5,14 +5,14 @@ public class Transaction implements Serializable {
     
     private long card_id;
     private long user_id;
-    private float latitude;
-    private float longitude;
+    private Double latitude;
+    private Double longitude;
     private long transaction_value;
     private long spend_limit;
 
     public Transaction(){}
 
-    public Transaction(long card_id, long user_id, float latitude, float longitude, long transaction_value, long spend_limit){
+    public Transaction(long card_id, long user_id, Double latitude, Double longitude, long transaction_value, long spend_limit){
         this.card_id = card_id;
         this.user_id = user_id;
         this.latitude = latitude;
@@ -37,19 +37,19 @@ public class Transaction implements Serializable {
         this.user_id = user_id;
     }
 
-    public float getLatitude(){
+    public Double getLatitude(){
         return latitude;
     }
 
-    public void setLatitude(float latitude){
+    public void setLatitude(Double latitude){
         this.latitude = latitude;
     }
 
-    public float getLongitude(){
+    public Double getLongitude(){
         return longitude;
     }
 
-    public void setLongitude(float longitude){
+    public void setLongitude(Double longitude){
         this.longitude = longitude;
     }
 
@@ -79,8 +79,8 @@ public class Transaction implements Serializable {
         Transaction that = (Transaction) o;
         return card_id == that.card_id
                 && user_id == that.user_id
-                && Float.compare(that.latitude,latitude) == 0
-                && Float.compare(that.longitude,longitude) == 0
+                && Double.compare(that.latitude,latitude) == 0
+                && Double.compare(that.longitude,longitude) == 0
                 && transaction_value == that.transaction_value
                 && spend_limit == that.spend_limit;
      }

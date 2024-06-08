@@ -28,6 +28,7 @@ import src.main.java.models.*;
 import src.main.java.utils.*;
 //import src.main.java.operator.*;
 import java.io.*;
+import java.lang.Math.*;
 
 
 import java.util.Properties;
@@ -65,20 +66,28 @@ public class AnomalyDetectionJob {
                     .withTimestampAssigner((event, timestamp) -> System.currentTimeMillis())
             ).name("transaction-kafka-consumer");
 
+        
+        FlinkKafkaProducer<AnomalyAlert> flinkKafkaProducer = new FlinkKafkaProducer<AnomalyAlert>(
+                brokers,
+                topicAlert,
+                new AnomalySerializationSchema()
+            );
         //Detect anomaly
         DataStream<AnomalyAlert> alertStream = transactionStream
                 //.keyBy(transaction -> transaction.getCard_id())
-                .windowAll(TumblingProcessingTimeWindows.of(Time.minutes(10)))
+                .windowAll(SlidingEventTimeWindows.of(Time.minutes(10), Time.seconds(30)))
                 .aggregate(new MovingAverageAggregate())
-                .filter(data -> data.f1 < data.f0.transaction.getTransaction_value())
-                .map(new MapFunction<Tuple2<MyAverage, Double>, AnomalyAlert>(){
+                .filter(new TransactionValueFilter())
+                .map(new MapFunction<Tuple3<MyAverage, Double, Double>, AnomalyAlert>(){
                     //@Override
-                    public AnomalyAlert map(Tuple2<MyAverage, Double> input) throws Exception{
+                    public AnomalyAlert map(Tuple3<MyAverage, Double, Double> input) throws Exception{
                         LOG.info("ALERT!!!! " + input.f0.transaction.getCard_id());
-                        return new AnomalyAlert(input.f0.transaction.getCard_id(), "FRAUD_DETECT_ANOMALY", "test");
+                        return new AnomalyAlert(input.f0.transaction.getCard_id(), "HIGH_TRANSACTION_VALUE_FRAUD", 
+                            "Detected high transaction for userId: "+input.f0.transaction.getCard_id()+" with tranaction value: " + input.f0.transaction.getTransaction_value()+". Average transation value is: " + input.f1);
                     }
                 });
-        
+        alertStream.addSink(flinkKafkaProducer);
+
         
        /*  alertStream
                 .addSink(new FlinkKafkaProducer<>(
@@ -118,7 +127,7 @@ public class AnomalyDetectionJob {
 		env.execute("Kafka-anomalyDetection");
 	}
 
-    public static class MovingAverageAggregate implements AggregateFunction<Transaction, MyAverage, Tuple2<MyAverage, Double>> {
+    public static class MovingAverageAggregate implements AggregateFunction<Transaction, MyAverage, Tuple3<MyAverage, Double, Double>> {
 
         private static final Logger LOG = LoggerFactory.getLogger(MovingAverageAggregate.class);
     
@@ -135,15 +144,16 @@ public class AnomalyDetectionJob {
             LOG.info("LOG_add_1: "+ accumulator.toString());
             accumulator.sum += value.getTransaction_value();
             accumulator.count += 1;
+            accumulator.var = accumulator.var + Math.pow(accumulator.transaction.getTransaction_value() - value.getTransaction_value(),2);
             accumulator.transaction = value;
             LOG.info("LOG_add_2: "+ accumulator.toString());
             return accumulator;
         }
     
         @Override
-        public Tuple2<MyAverage, Double> getResult(MyAverage accumulator) {
+        public Tuple3<MyAverage, Double, Double> getResult(MyAverage accumulator) {
             LOG.info("LOOOOG_getResult: "+ accumulator.sum / accumulator.count + " | " + accumulator.transaction.toString());
-            return new Tuple2<>(accumulator, accumulator.sum / accumulator.count);
+            return new Tuple3<>(accumulator, accumulator.sum / accumulator.count, Math.sqrt(accumulator.var / accumulator.count));
         }
     
         @Override
@@ -154,10 +164,25 @@ public class AnomalyDetectionJob {
         }
     }
 
+    public static class TransactionValueFilter implements FilterFunction<Tuple3<MyAverage, Double, Double>>{
+        @Override
+        public boolean filter(Tuple3<MyAverage, Double, Double> input){
+            //define the normal value range
+            Double a = input.f1 - input.f2;
+            Double b = input.f1 + input.f2;
+            LOG.info("a="+ a+" | b="+b);
+            //ESF
+            Double esf = ((a <= Double.valueOf(input.f0.transaction.getTransaction_value())) && (Double.valueOf(input.f0.transaction.getTransaction_value()) <= b))? 0.2 : 0.8;
+            LOG.info("esf="+esf);
+            return (esf < 0.5)? false : true;
+        }
+    }
+
     public static class MyAverage{
         public Double sum = 0d;
         public Integer count = 0;
-        public Transaction transaction;
+        public Double var = 0d;
+        public Transaction transaction = new Transaction(0, 0, Double.valueOf(0), Double.valueOf(0), 0, 0);
 
         @Override
         public String toString(){
