@@ -67,16 +67,15 @@ public class AnomalyDetectionJob {
 
         //Detect anomaly
         DataStream<AnomalyAlert> alertStream = transactionStream
-                .keyBy(transaction -> transaction.getCard_id())
-                .window(SlidingProcessingTimeWindows.of(Time.minutes(10), Time.minutes(3)))
-                //.aggregate(new MovingAverageAggregate(), new AnomalyDetectionWindowFunction());
+                //.keyBy(transaction -> transaction.getCard_id())
+                .windowAll(TumblingProcessingTimeWindows.of(Time.minutes(10)))
                 .aggregate(new MovingAverageAggregate())
-                .filter(data -> data.f0 > data.f1.getTransaction_value())
-                .map(new MapFunction<Tuple2<Double, Transaction>, AnomalyAlert>(){
+                .filter(data -> data.f1 < data.f0.transaction.getTransaction_value())
+                .map(new MapFunction<Tuple2<MyAverage, Double>, AnomalyAlert>(){
                     //@Override
-                    public AnomalyAlert map(Tuple2<Double, Transaction> input) throws Exception{
-                        LOG.info("ALERT!!!! " + input.f1.getCard_id());
-                        return new AnomalyAlert(input.f1.getCard_id(), "FRAUD_DETECT_ANOMALY", "test");
+                    public AnomalyAlert map(Tuple2<MyAverage, Double> input) throws Exception{
+                        LOG.info("ALERT!!!! " + input.f0.transaction.getCard_id());
+                        return new AnomalyAlert(input.f0.transaction.getCard_id(), "FRAUD_DETECT_ANOMALY", "test");
                     }
                 });
         
@@ -119,33 +118,54 @@ public class AnomalyDetectionJob {
 		env.execute("Kafka-anomalyDetection");
 	}
 
-    public static class MovingAverageAggregate implements AggregateFunction<Transaction, Tuple3<Double, Integer, Transaction>, Tuple2<Double, Transaction>> {
+    public static class MovingAverageAggregate implements AggregateFunction<Transaction, MyAverage, Tuple2<MyAverage, Double>> {
 
         private static final Logger LOG = LoggerFactory.getLogger(MovingAverageAggregate.class);
     
         @Override
-        public Tuple3<Double, Integer, Transaction> createAccumulator() {
-            return new Tuple3<>(0.0, 0, new Transaction());
+        public MyAverage createAccumulator() {
+            LOG.info("createAccumulator!!!!");
+            return new MyAverage();
         }
     
         @Override
-        public Tuple3<Double, Integer, Transaction> add(Transaction value, Tuple3<Double, Integer, Transaction> accumulator) {
+        public MyAverage add(Transaction value, MyAverage accumulator) {
             //LOG.info("LOOOOG: "+ Double.valueOf(accumulator.f0) + Double.valueOf(value.getTransaction_value()));
-            LOG.info("LOOOOG_add: f0: "+ Double.valueOf(accumulator.f0)+ " | f1: "+ accumulator.f1 + " | f2: "+accumulator.f2);
-            return new Tuple3<>(Double.valueOf(accumulator.f0) + Double.valueOf(value.getTransaction_value()), accumulator.f1 + 1, value);
+            //LOG.info("LOOOOG_add: f0: "+ Double.valueOf(accumulator.f0)+ " | f1: "+ accumulator.f1 + " | f2: "+accumulator.f2);
+            LOG.info("LOG_add_1: "+ accumulator.toString());
+            accumulator.sum += value.getTransaction_value();
+            accumulator.count += 1;
+            accumulator.transaction = value;
+            LOG.info("LOG_add_2: "+ accumulator.toString());
+            return accumulator;
         }
     
         @Override
-        public Tuple2<Double, Transaction> getResult(Tuple3<Double, Integer, Transaction> accumulator) {
-            LOG.info("LOOOOG 1: "+ Double.valueOf(accumulator.f0) / Double.valueOf(accumulator.f1) + " | " + accumulator.f2.toString());
-            return new Tuple2<>(Double.valueOf(accumulator.f0) / Double.valueOf(accumulator.f1), accumulator.f2);
+        public Tuple2<MyAverage, Double> getResult(MyAverage accumulator) {
+            LOG.info("LOOOOG_getResult: "+ accumulator.sum / accumulator.count + " | " + accumulator.transaction.toString());
+            return new Tuple2<>(accumulator, accumulator.sum / accumulator.count);
         }
     
         @Override
-        public Tuple3<Double, Integer, Transaction>  merge(Tuple3<Double, Integer, Transaction> a, Tuple3<Double, Integer, Transaction> b) {
-            a.f0 = a.f0 + b.f0;
-            a.f1 = a.f1 + b.f1;
+        public MyAverage merge(MyAverage a, MyAverage b) {
+            a.sum = a.sum + b.sum;
+            a.count = a.count + b.count;
             return a;
+        }
+    }
+
+    public static class MyAverage{
+        public Double sum = 0d;
+        public Integer count = 0;
+        public Transaction transaction;
+
+        @Override
+        public String toString(){
+            return "MyAverage{"+
+                    "sum=" + sum +
+                    ",count=" + count +
+                    //",transaction=" + transaction.getCard_id()+
+                    "}";
         }
     }
     
