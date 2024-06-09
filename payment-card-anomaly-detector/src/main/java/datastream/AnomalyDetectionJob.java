@@ -26,7 +26,6 @@ import org.apache.flink.api.java.tuple.Tuple3;
 
 import src.main.java.models.*;
 import src.main.java.utils.*;
-//import src.main.java.operator.*;
 import java.io.*;
 import java.lang.Math.*;
 
@@ -36,9 +35,7 @@ import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Skeleton code for the datastream walkthrough
- */
+
 public class AnomalyDetectionJob {
 
     private static final Logger LOG = LoggerFactory.getLogger(AnomalyDetectionJob.class);
@@ -88,44 +85,9 @@ public class AnomalyDetectionJob {
                 });
         alertStream.addSink(flinkKafkaProducer);
 
-        
-       /*  alertStream
-                .addSink(new FlinkKafkaProducer<>(
-                        brokers,
-                        topicAlert,
-                        new AnomalySerializationSchema()   
-                )); */
-
-      /*          
-        DataStream<AnomalyAlert> anomalyAlert = transactionStream
-            .keyBy(Transaction::getCard_id)
-            .process(new AnomalyDetector())
-            .name("anomaly-detector");
-
-		transactionStream.print();
-
-        anomalyAlert
-            .addSink(new AlertSink())
-            .name("send-alerts");
-        
-        FlinkKafkaProducer<AnomalyAlert> flinkKafkaProducer = new FlinkKafkaProducer<AnomalyAlert>(
-            brokers,
-            topicAlert,
-            new AnomalySerializationSchema()
-        );
-        
-        DataStream<AnomalyAlert> anomalyAlertKafka = transactionStream
-            .keyBy(Transaction::getCard_id)
-            .process(new AnomalyDetector())
-            .name("anomaly-detector-kafka");
-        
-            anomalyAlertKafka
-            //.timeWindowAll(Time.hours(24))
-            .addSink(flinkKafkaProducer);
-                */
-
 		env.execute("Kafka-anomalyDetection");
 	}
+
 
     public static class MovingAverageAggregate implements AggregateFunction<Transaction, MyAverage, Tuple3<MyAverage, Double, Double>> {
 
